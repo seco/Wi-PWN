@@ -1,86 +1,107 @@
 <head>
-    <title>Attack - Wi-PWN</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="main.css">
-    <meta name="theme-color" content="#1976d2">
+	<title>Attack - Wi-PWN</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0">
+	<link rel="stylesheet" href="./main.css">
+	<link rel="stylesheet" href="./dark.css">
+	<meta name="theme-color" content="#106CC8">
 </head>
 
 <body>
-    <nav id="nav">
-        <div class="main-header">
-            <img id="logo-img"><b style="color:#fff">Wi-</b>PWN
-        </div>
-        <div id="links">
-            <a href="apscan.html">Scan</a>
-            <a href="stations.html">Stations</a>
-            <a href="attack.html" class="active">Attack</a>
-            <a href="settings.html">Settings</a>
-            <a class="right" href="info.html">Info</a>
-        </div>
-    </nav>
-    <div class="main-wrap">
-        <div id="error"></div>
-        <div class="container">
-            <div class="card-container-basic">
-                <div class="settingsHeader">Attack overview</div>
-                <div class="card-basic">
-                    <b>Selected Wi-Fi networks:</b>
-                    <ul id="selectedAPs">
-                    </ul>
-                    <br>
-                    <b>Selected stations:</b>
-                    <ul id="selectedClients">
-                    </ul>
-                    <br>
-                </div>
-            </div>
-            <div class="card-container-basic">
-                <div class="settingsHeader">Initiate attack</div>
-                <div class="card-basic">
-                    <table>
-                    </table>
-                    <br>
-                    <p class="left">SSIDs: <span id="ssidCounter">0/48</span>
-                        <div class="right">
-                            <button class="button-warn" onclick="clearSSID()">clear</button>
-                            <button onclick="randomSSID()">random</button>
-                            <button onclick="cloneSSID(prompt('Enter new SSID:'))">clone</button>
-                            <button class="button-primary" onclick="addSSID()">add</button>
-                    </p>
-                    </div>
-                    <br>
-                    <table></table>
-                    <br>
-                    <button class="marginNull button-warn" onclick="resetSSID()">reset</button>
-                    <button class="marginNull button-primary right" onclick="saveSSID()">save</button>
-                    <p class="small" id="saved">saved</p>
-                </div>
-            </div>
-            <div class="card-container-basic">
-                <div class="settingsHeader">About attacks</div>
-                <div class="card-basic">
-                    <span class="warn">INFO: </span><b>Connection will be lost during attack</b>
-                    <br>Change the channel in the settings to the same of the selected AP to prevent this.
-                    <br>
-                    <br>
-                    <b>Deauth attack</i>:</b>
-                    <br>Sends deauthentication and dissociation frames to the selected station(s) and access point(s).
-                    <br>
-                    <br>
-                    <b>Beacon flood:</b>
-                    <br>Sends beacon frames with the SSIDs in the list below.
-                    <br>
-                    <br>
-                    <b>Probe-Request flood:</b>
-                    <br>Sends probe request frames with the SSIDs in the list below.
-                </div>
-            </div>
-        </div>
-        <footer></footer>
-        <script src="js/functions.js"></script>
-        <script src="js/attack.js"></script>
-        
-    </div>
+	<nav id="nav">
+		<div class="main-header">
+			<div id="logo-img"></div><b style="color:#fff">Wi-</b>PWN
+		</div>
+		<div id="links">
+			<a href="./">Scan</a>
+			<a href="./users.html">Users</a>
+			<a href="./attack.html" class="active">Attack</a>
+			<a href="./detector.html">Detector</a>
+			<a href="./settings.html">Settings</a>
+			<a class="right" href="/info.html">Info</a>
+		</div>
+	</nav>
+	<div id="notification"></div>
+	<div id="spinner-container"></div>
+	<script>
+	/(^|;)\s*minimal=/.test(document.cookie) && (document.body.id = "minimal");
+	</script>
+	<div class="main-wrap">
+		<div class="container">
+			<div class="card-container">
+				<div class="settingsHeader">Initiate Attack</div>
+				<div class="card">
+					<table><tbody><tr><th>Attack</th><th>Status</th><th>Switch</th></tr><tr><td>Deauth</td><td class="red"></td><td><button class="attackBtn" onclick="startStop(0)" disabled="">start</button></td></tr><tr><td>Beacon</td><td class="red"></td><td><button class="attackBtn" onclick="startStop(1)" disabled="">start</button></td></tr><tr><td>Random <span class='light'>5s</span></td><td></td><td><button class="attackBtn" onclick="startStop(1)" disabled="">start</button></td></tr><tr><td>Probe-Request</td><td class="red"></td><td><button class="attackBtn" onclick="startStop(2)" disabled="">start</button></td></tr></tbody></table>
+				</div>
+				<hr>
+			</div>
+			<div id="selectedNetworksDevices" class="card-container dn">
+				<div class="settingsHeader">Selected networks &amp; users</div>
+				<div class="card">
+					<table id="selectedAPs"></table>
+				</div>
+				<div class="card">
+					<table id="selectedClients" class="dn"></table>
+				</div>
+			</div>
+			<div class="card-container" id="section2">
+				<div class="settingsHeader">Add SSID</div>
+				<div class="card">
+					<div class="card-content">
+						<div class="row inputCheckbox">
+							<div class="col-6">
+								<div class="input-container" id="ssidContainer">
+									<input placeholder=" " id="ssid" required="" type="text" minlength="1" maxlength="32">
+									<label for="ssid">SSID</label>
+								</div>
+							</div>
+							<div class="col-6">
+								<label for="randSSID" class="checkboxContainer">
+									<input type="checkbox" name="randSSID" id="randSSID" value="false">
+									<label class="checkbox" for="randSSID"></label>
+									Generate random
+								</label>
+							</div>
+						</div>
+						<div class="row inputCheckbox">
+							<div class="col-6">
+								<div class="input-container">
+									<input placeholder=" " type="number" required="" id="num" min="0" max="48" value="48">
+									<label for="num">Number of clones</label>
+								</div>
+							</div>
+							<div class="col-6">
+								<label for="enc" class="checkboxContainer">
+									<input type="checkbox" name="enc" id="enc" value="false">
+									<label class="checkbox" for="enc"></label>
+									Encrypted
+								</label>
+							</div>
+						</div>
+					</div>
+					<div class="card-action">
+						<a class="button right" onclick="addSSID()">Add</a>
+					</div>
+				</div>
+			</div>
+			<div class="card-container">
+				<div class="settingsHeader" style="display:inline-block;margin-bottom: 30px">Saved SSIDs<span id="ssidCounter"> (0/48)</span></div>
+				<div class="card">
+					<table>
+						<tr>
+							<th> </th>
+						</tr>
+					</table>
+					<div class="card-action">
+						<a class="button" onclick="resetSSID()">reset</a>
+						<a class="button right" onclick="saveSSID()">save</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<footer></footer>
+		<script src="./js/functions.js"></script>
+		<script src="./js/attack.js"></script>
+	</div>
 </body>
 
 </html>

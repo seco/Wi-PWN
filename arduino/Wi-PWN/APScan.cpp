@@ -10,9 +10,16 @@ bool APScan::start() {
     Serial.println("MAC - Ch - RSSI - Encrypt. - SSID - Hidden");// - Vendor");
   }
   aps._clear();
-  for (int i = 0; i < maxAPScanResults; i++) selected[i] = false;
+  results = 0;
+  for (int i = 0; i < maxAPScanResults; i++){
+    selected[i] = false;
+    String("").toCharArray(names[i], 33);
+  }
   results = WiFi.scanNetworks(false, settings.apScanHidden); // lets scanNetworks return hidden APs. (async = false & show_hidden = true)
+  if(results > maxAPScanResults) results = maxAPScanResults;
 
+  if (debug) Serial.println("Scan results: "+(String)results);
+  
   for (int i = 0; i < results && i < maxAPScanResults; i++) {
     Mac _ap;
     _ap.set(WiFi.BSSID(i)[0], WiFi.BSSID(i)[1], WiFi.BSSID(i)[2], WiFi.BSSID(i)[3], WiFi.BSSID(i)[4], WiFi.BSSID(i)[5]);
@@ -83,7 +90,7 @@ bool APScan::start() {
 String APScan::getEncryption(int code) {
   switch (code) {
     case ENC_TYPE_NONE:
-      return "none";
+      return "Open";
       break;
     case ENC_TYPE_WEP:
       return "WEP";
@@ -112,9 +119,6 @@ String APScan::getAPEncryption(int num) {
 String APScan::getAPMac(int num) {
   return aps._get(num).toString();
 }
-bool APScan::getAPSelected(int num) {
-  return selected[num];
-}
 bool APScan::isHidden(int num) {
   return hidden[num];
 }
@@ -135,7 +139,7 @@ int APScan::getFirstTarget() {
 void APScan::sendResults() {
   if (debug) Serial.print("sending AP scan result JSON ");
 
-  size_t _size = 10; // {"aps":[]}
+  size_t _size = 25; // {"aps":[ ... ],"multiAPs":"1"}
   for (int i = 0; i < results && i < maxAPScanResults; i++) {
     /*
       _size++; // {
@@ -178,14 +182,19 @@ void APScan::sendResults() {
     json += "\"r\":" + (String)getAPRSSI(i) + ",";
     json += "\"e\":" + (String)encryption[i] + ",";
     //json += "\"v\":\""+getAPVendor(i)+"\",";
-    json += "\"se\":" + (String)getAPSelected(i);
+    json += "\"se\":" + (String)isSelected(i);
     json += "}";
     if ((i != results - 1) && (i != maxAPScanResults - 1)) json += ",";
 
     sendToBuffer(json);
 
   }
-  json = "]}";
+
+  json = "],\"multiAPs\":\"";
+  if(settings.multiAPs) json += "1";
+  else json += "0";
+  json += "\"}";
+
   sendToBuffer(json);
   sendBuffer();
 
@@ -206,7 +215,7 @@ String APScan::getResultsJSON() {
     json += "\"r\":" + (String)getAPRSSI(i) + ",";
     json += "\"e\":" + (String)encryption[i] + ",";
     //json += "\"v\":\""+getAPVendor(i)+"\",";
-    json += "\"se\":" + (String)getAPSelected(i);
+    json += "\"se\":" + (String)isSelected(i);
     json += "}";
     if ((i != results - 1) && (i != maxAPScanResults - 1)) json += ",";
   }
@@ -221,7 +230,8 @@ String APScan::getResultsJSON() {
 void APScan::sort() {
   if (debug) Serial.println("sorting APs ");
 
-  //bubble sort
+  /* I know, it's bubble sort... but it works and that's the main thing! ;) (feel free to improve it tho) */
+
   for (int i = 0; i < results - 1; i++) {
     Serial.println("--------------");
     for (int h = 0; h < results - i - 1; h++) {
@@ -255,7 +265,7 @@ void APScan::sort() {
         Mac tmpMac = aps._get(h);
         aps.set(h,aps._get(h+1));
         aps.set(h+1,tmpMac);
-        
+
       } else Serial.println((String)rssi[h] + " < " + (String)rssi[h + 1]);
     }
   }
@@ -263,14 +273,27 @@ void APScan::sort() {
 
 void APScan::select(int num) {
   if (debug) Serial.println("select " + (String)num + " - " + !selected[num]);
-  if(!settings.multiAPs){
+  if(num < 0) {
+    if(num == -1){
+      if(settings.multiAPs) {
+        selectedSum = results;
+        for (int i = 0; i < results; i++) selected[i] = true;
+      }
+    } else {
+      selectedSum = 0;
+      for (int i = 0; i < maxAPScanResults; i++) selected[i] = false;
+    }
+  } else if(!settings.multiAPs) {
     for (int i = 0; i < maxAPScanResults; i++){
       if(i != num) selected[i] = false;
+      else selected[num] = !selected[num];
     }
+    selectedSum = 1;
+  } else {
+     if(selected[num]) selectedSum--;
+     else selectedSum++;
+     selected[num] = !selected[num];
   }
-  selected[num] = !selected[num];
-  if (selected[num]) selectedSum--;
-  else selectedSum++;
 }
 
 bool APScan::isSelected(int num) {
